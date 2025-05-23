@@ -7,7 +7,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ReviewProvider } from './contexts/ReviewContext';
 
 // Import routes
-import routes from './router';
+import routes from './router.jsx';
 
 // Set base URL for API requests
 axios.defaults.baseURL = 'http://localhost/AiAutoReview';
