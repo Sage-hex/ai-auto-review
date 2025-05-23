@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import Layout from '../components/layout/Layout';
 import Settings from '../components/common/Settings';
 
 export default function SettingsPage() {
@@ -7,9 +6,5 @@ export default function SettingsPage() {
     document.title = 'Settings | AI Auto Review';
   }, []);
 
-  return (
-    <Layout>
-      <Settings />
-    </Layout>
-  );
+  return <Settings />;
 }

@@ -11,10 +11,13 @@ export default function Layout({ children }) {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      {/* Sidebar */}
+      <div className="w-64 flex-shrink-0">
+        <Sidebar />
+      </div>
       
       {/* Main content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto pl-4">
         <main className="p-6">
           <div className="max-w-7xl mx-auto">
             {children || <Outlet />}

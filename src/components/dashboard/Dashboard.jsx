@@ -120,7 +120,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header with Navigation and Actions */}
         <motion.div 
