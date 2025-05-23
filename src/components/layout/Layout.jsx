@@ -2,24 +2,22 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../../contexts/AuthContext';
 
-export default function Layout() {
+export default function Layout({ children }) {
   const { currentUser } = useAuth();
 
   if (!currentUser) {
-    return <Outlet />;
+    return children || <Outlet />;
   }
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-50">
+    <div className="flex h-screen bg-gray-50">
       <Sidebar />
       
       {/* Main content */}
-      <div className="flex flex-col w-0 flex-1 overflow-hidden">
-        <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none">
-          <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-              <Outlet />
-            </div>
+      <div className="flex-1 overflow-auto">
+        <main className="p-6">
+          <div className="max-w-7xl mx-auto">
+            {children || <Outlet />}
           </div>
         </main>
       </div>

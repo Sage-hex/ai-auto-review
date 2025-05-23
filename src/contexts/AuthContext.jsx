@@ -36,8 +36,8 @@ export function AuthProvider({ children }) {
       setError('');
       setLoading(true);
       
-      // Make API request to login endpoint
-      const response = await api.post('/backend/api/endpoints/auth/login.php', { 
+      // Make API request to simplified login endpoint
+      const response = await api.post('/backend/api/endpoints/auth/login_simple.php', { 
         email, 
         password 
       });
@@ -86,19 +86,46 @@ export function AuthProvider({ children }) {
       
       console.log('Registering with API:', { businessName, name, email });
       
-      // Make API request to register endpoint
-      const response = await api.post('/backend/api/endpoints/auth/register.php', {
+      // Validate input data before sending to API
+      if (!businessName || !name || !email || !password) {
+        throw new Error('All fields are required');
+      }
+      
+      // Prepare request data
+      const requestData = {
         business_name: businessName,
         name,
         email,
         password
-      });
+      };
       
-      console.log('Registration response:', response.data);
+      console.log('Sending registration data:', requestData);
+      
+      // Make API request to simplified register endpoint
+      const response = await api.post('/backend/api/endpoints/auth/register_simple.php', requestData);
+      
+      console.log('Registration response:', response);
+      
+      // Check if response exists
+      if (!response || !response.data) {
+        console.error('Empty response received from server');
+        throw new Error('Server returned an empty response. Please try again.');
+      }
+      
+      // Check if response has error status from our custom transform
+      if (response.data.status === 'error' && response.data.message === 'Invalid JSON response from server') {
+        console.error('Invalid JSON response:', response.data.rawData);
+        throw new Error('Server returned an invalid response. Please try again.');
+      }
       
       // Check if response is successful
       if (response.data && response.data.status === 'success') {
         const { user, business, token } = response.data.data;
+        
+        // Validate required data
+        if (!user || !business || !token) {
+          throw new Error('Registration succeeded but returned incomplete data');
+        }
         
         // Save to state
         setCurrentUser(user);
@@ -119,7 +146,18 @@ export function AuthProvider({ children }) {
         throw new Error(errorMsg);
       }
     } catch (err) {
-      console.error('Registration error:', err.response?.data || err.message || err);
+      console.error('Registration error:', err);
+      
+      // Log detailed error information
+      if (err.response) {
+        console.error('Error response:', err.response);
+        console.error('Error response data:', err.response.data);
+        console.error('Error response status:', err.response.status);
+        console.error('Error response headers:', err.response.headers);
+      } else if (err.request) {
+        // The request was made but no response was received
+        console.error('Error request:', err.request);
+      }
       
       // Extract error message from response if available
       const errorMessage = err.response?.data?.message || err.message || 'Failed to register. Please try again.';

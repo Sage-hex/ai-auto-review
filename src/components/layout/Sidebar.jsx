@@ -32,7 +32,7 @@ export default function Sidebar() {
   const menuItems = [
     {
       name: 'Dashboard',
-      path: '/',
+      path: '/dashboard',
       icon: <House weight="duotone" className="w-6 h-6" />,
       roles: ['admin', 'manager', 'support', 'viewer']
     },

@@ -2,8 +2,18 @@
 /**
  * Login Endpoint
  * 
- * This endpoint handles user authentication and returns a JWT token.
+ * This endpoint handles user authentication.
  */
+
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Don't display errors to browser, but log them
+
+// Start output buffering to prevent any unwanted output
+ob_start();
+
+// Include common API utilities
+require_once __DIR__ . '/../../common/init.php';
 
 // Enable CORS for all origins during development
 header('Access-Control-Allow-Origin: *');
@@ -15,6 +25,22 @@ header('Access-Control-Max-Age: 86400'); // 24 hours cache
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
+}
+
+// Get request method and data
+$method = $_SERVER['REQUEST_METHOD'];
+$rawInput = file_get_contents('php://input');
+
+// Log the raw input for debugging
+error_log('Login raw input: ' . $rawInput);
+
+// Try to decode the JSON input
+$data = json_decode($rawInput, true);
+
+// Check for JSON parsing errors
+if (json_last_error() !== JSON_ERROR_NONE) {
+    error_log('JSON decode error: ' . json_last_error_msg());
+    sendErrorResponse('Invalid JSON input: ' . json_last_error_msg(), 400);
 }
 
 // Only allow POST requests
@@ -30,59 +56,82 @@ if (empty($data['email']) || empty($data['password'])) {
     ]);
 }
 
-// Load User model
-require_once __DIR__ . '/../../../models/User.php';
-require_once __DIR__ . '/../../../models/Business.php';
+// Log the login attempt
+error_log('Login attempt: ' . $data['email']);
 
-$userModel = new User();
-$businessModel = new Business();
-
-// Authenticate user
-$user = $userModel->authenticate($data['email'], $data['password']);
-
-if (!$user) {
-    sendErrorResponse('Invalid email or password', 401);
+// Load models
+try {
+    require_once __DIR__ . '/../../../models/User.php';
+    require_once __DIR__ . '/../../../models/Business.php';
+    
+    $userModel = new User();
+    $businessModel = new Business();
+    
+    // Authenticate user
+    try {
+        $user = $userModel->authenticate($data['email'], $data['password']);
+        
+        if (!$user) {
+            sendErrorResponse('Invalid email or password', 401);
+        }
+        
+        // Get business status
+        $business = $businessModel->getById($user['business_id']);
+        
+        if (!$business) {
+            sendErrorResponse('Business not found', 404);
+        }
+        
+        // Check if business is suspended
+        if (isset($business['status']) && $business['status'] === 'suspended') {
+            sendErrorResponse('Your account has been suspended. Please contact support.', 403);
+        }
+        
+        // Generate JWT token
+        $token = generateJWT($user['id'], $user['business_id'], $user['role']);
+        
+        // Try to log successful login, but continue if it fails
+        try {
+            $logSql = "
+                INSERT INTO logs (user_id, action, description)
+                VALUES (:user_id, 'login', 'User logged in successfully')
+            ";
+            
+            $logStmt = getDbConnection()->prepare($logSql);
+            $logStmt->bindParam(':user_id', $user['id'], PDO::PARAM_INT);
+            $logStmt->execute();
+        } catch (Exception $e) {
+            error_log('Failed to log login: ' . $e->getMessage());
+            // Continue execution - logging failure is not critical
+        }
+        
+        // Return user data and token
+        sendSuccessResponse([
+            'user' => [
+                'id' => $user['id'],
+                'name' => $user['name'],
+                'email' => $user['email'],
+                'role' => $user['role'],
+                'business_id' => $user['business_id']
+            ],
+            'business' => [
+                'id' => $business['id'],
+                'name' => $business['name'],
+                'subscription_plan' => isset($business['plan']) ? $business['plan'] : 'free',
+                'status' => isset($business['status']) ? $business['status'] : 'trialing'
+            ],
+            'token' => $token
+        ], 200, 'Login successful');
+    } catch (Exception $e) {
+        error_log('Authentication error: ' . $e->getMessage());
+        sendErrorResponse('Authentication failed: ' . $e->getMessage(), 500);
+    }
+} catch (Exception $e) {
+    error_log('Login Error: ' . $e->getMessage());
+    sendErrorResponse('Login failed: ' . $e->getMessage(), 500);
 }
 
-// Get business status
-$business = $businessModel->getById($user['business_id']);
-
-if (!$business) {
-    sendErrorResponse('Business not found', 404);
+// Clean any output buffers to ensure clean JSON response
+while (ob_get_level() > 0) {
+    ob_end_clean();
 }
-
-// Check if business is suspended
-if ($business['status'] === 'suspended') {
-    sendErrorResponse('Your account has been suspended. Please contact support.', 403);
-}
-
-// Generate JWT token
-$token = generateJWT($user['id'], $user['business_id'], $user['role']);
-
-// Log successful login
-$logSql = "
-    INSERT INTO logs (user_id, action, description)
-    VALUES (:user_id, 'login', 'User logged in successfully')
-";
-
-$logStmt = getDbConnection()->prepare($logSql);
-$logStmt->bindParam(':user_id', $user['id'], PDO::PARAM_INT);
-$logStmt->execute();
-
-// Return user data and token
-sendSuccessResponse([
-    'user' => [
-        'id' => $user['id'],
-        'name' => $user['name'],
-        'email' => $user['email'],
-        'role' => $user['role'],
-        'business_id' => $user['business_id']
-    ],
-    'business' => [
-        'id' => $business['id'],
-        'name' => $business['name'],
-        'subscription_plan' => $business['subscription_plan'],
-        'status' => $business['status']
-    ],
-    'token' => $token
-], 200, 'Login successful');

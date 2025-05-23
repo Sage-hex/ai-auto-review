@@ -2,13 +2,15 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import axios from 'axios';
 import './App.css';
 
-
 // Context Providers
 import { AuthProvider } from './contexts/AuthContext';
 import { ReviewProvider } from './contexts/ReviewContext';
 
 // Auth Components
 import ProtectedRoute from './components/auth/ProtectedRoute';
+
+// Layout
+import Layout from './components/layout/Layout';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -34,19 +36,22 @@ function App() {
         <ReviewProvider>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/landing" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             
-            {/* Protected Routes */}
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-            <Route path="/reviews" element={<ProtectedRoute><ReviewsPage /></ProtectedRoute>} />
-            <Route path="/reviews/:id" element={<ProtectedRoute><ReviewDetailPage /></ProtectedRoute>} />
-            <Route path="/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
-            <Route path="/platforms" element={<ProtectedRoute><PlatformsPage /></ProtectedRoute>} />
-            <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            {/* Protected Routes with Layout */}
+            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+              <Route index element={<DashboardPage />} />
+              <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="reviews" element={<ReviewsPage />} />
+              <Route path="reviews/:id" element={<ReviewDetailPage />} />
+              <Route path="users" element={<UsersPage />} />
+              <Route path="platforms" element={<PlatformsPage />} />
+              <Route path="subscription" element={<SubscriptionPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
             
             {/* 404 Route */}
             <Route path="*" element={<NotFoundPage />} />
