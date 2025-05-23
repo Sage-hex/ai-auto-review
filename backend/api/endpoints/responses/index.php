@@ -5,18 +5,51 @@
  * These endpoints handle response-related operations.
  */
 
-// Load required models and services
-require_once __DIR__ . '/../../../models/Response.php';
-require_once __DIR__ . '/../../../models/Review.php';
-require_once __DIR__ . '/../../../services/PlatformService.php';
+// Include CORS headers utility
+require_once __DIR__ . '/../../common/cors.php';
 
-$responseModel = new Response();
-$reviewModel = new Review();
-$platformService = new PlatformService();
+// Include bootstrap for other utilities
+require_once __DIR__ . '/../../common/bootstrap.php';
 
-// Get user data from authenticated user
-$businessId = $userData['business_id'];
-$userId = $userData['user_id'];
+// Define response utility functions locally
+function sendSuccessResponse($data, $statusCode = 200) {
+    http_response_code($statusCode);
+    echo json_encode([
+        'status' => 'success',
+        'data' => $data
+    ]);
+    exit;
+}
+
+function sendErrorResponse($message, $statusCode = 400) {
+    http_response_code($statusCode);
+    echo json_encode([
+        'status' => 'error',
+        'message' => $message
+    ]);
+    exit;
+}
+
+function sendNotFoundResponse($message) {
+    sendErrorResponse($message, 404);
+}
+
+function sendForbiddenResponse($message) {
+    sendErrorResponse($message, 403);
+}
+
+// Parse request method and path
+$method = $_SERVER['REQUEST_METHOD'];
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$pathParts = explode('/', trim(substr($uri, strpos($uri, '/api/') + 5), '/'));
+
+// Default user data for development
+$userId = 1;
+$businessId = 1;
+
+// Get raw input data
+$rawInput = file_get_contents('php://input');
+$data = json_decode($rawInput, true);
 
 // Route based on request method and path
 if ($method === 'GET' && count($pathParts) === 2) {
@@ -144,10 +177,51 @@ if ($method === 'GET' && count($pathParts) === 2) {
 } elseif ($method === 'GET' && count($pathParts) === 2 && $pathParts[1] === 'pending') {
     // GET /responses/pending - Get pending responses
     
-    // Get pending responses
-    $responses = $responseModel->getPendingResponses($businessId);
+    // Create mock pending responses data
+    $pendingResponses = [
+        [
+            'id' => 101,
+            'business_id' => 1,
+            'review_id' => 1,
+            'response_text' => 'Thank you for your positive feedback! We strive to provide excellent service and are glad you had a great experience.',
+            'status' => 'pending',
+            'created_by' => 0,  // 0 indicates AI-generated
+            'approved_by' => null,
+            'created_at' => '2025-05-20',
+            'updated_at' => '2025-05-20',
+            'posted_at' => null,
+            'review' => [
+                'id' => 1,
+                'platform' => 'google',
+                'rating' => 4,
+                'content' => 'Great service! Would definitely recommend.',
+                'reviewer_name' => 'John Doe',
+                'date_posted' => '2025-05-15'
+            ]
+        ],
+        [
+            'id' => 103,
+            'business_id' => 1,
+            'review_id' => 3,
+            'response_text' => 'We are sorry to hear about your experience. We take product quality very seriously and would like to make this right. Please contact our customer service team at support@example.com.',
+            'status' => 'pending',
+            'created_by' => 0,
+            'approved_by' => null,
+            'created_at' => '2025-05-21',
+            'updated_at' => '2025-05-21',
+            'posted_at' => null,
+            'review' => [
+                'id' => 3,
+                'platform' => 'facebook',
+                'rating' => 2,
+                'content' => 'Very disappointed with the product quality.',
+                'reviewer_name' => 'Mike Johnson',
+                'date_posted' => '2025-05-05'
+            ]
+        ]
+    ];
     
-    sendSuccessResponse($responses);
+    sendSuccessResponse($pendingResponses);
 } else {
     sendNotFoundResponse('Endpoint not found');
 }

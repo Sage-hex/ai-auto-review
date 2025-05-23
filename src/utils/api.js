@@ -1,12 +1,13 @@
 import axios from 'axios';
 
 // Create an axios instance with a base URL
-// Using the proxy configured in vite.config.js
+// Using direct URL to XAMPP server instead of proxy
 const api = axios.create({
-  baseURL: 'http://localhost/AiAutoReview',  // Point directly to the XAMPP server
+  baseURL: 'http://localhost/AiAutoReview',  // Direct URL to XAMPP server
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important for CORS with credentials
   // Add timeout to prevent hanging requests
   timeout: 10000,
   // Ensure proper JSON parsing
@@ -71,11 +72,18 @@ api.interceptors.response.use(
     
     // Handle common errors like 401 Unauthorized
     if (error.response && error.response.status === 401) {
-      // Clear local storage and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('business');
-      window.location.href = '/login';
+      // Check if the request is for a public route
+      const publicRoutes = ['/landing', '/', '/login', '/register', '/forgot-password'];
+      const isPublicRoute = publicRoutes.some(route => window.location.pathname.includes(route));
+      
+      // Only redirect to login if not on a public route
+      if (!isPublicRoute) {
+        // Clear local storage and redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('business');
+        window.location.href = '/login';
+      }
     }
     
     return Promise.reject(error);

@@ -5,7 +5,7 @@
  * This class handles user-related database operations.
  */
 
-require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/Business.php';
 
 class User {
@@ -30,7 +30,7 @@ class User {
         try {
             $stmt = $this->db->prepare("
                 SELECT id, business_id, name, email, role, created_at
-                FROM users
+                FROM ar_user
                 WHERE id = :id
             ");
             
@@ -59,9 +59,9 @@ class User {
     public function getByEmail($email) {
         try {
             $stmt = $this->db->prepare("
-                SELECT id, business_id, name, email, password, role, created_at
-                FROM users
-                WHERE email = :email
+                SELECT user_id, business_id, full_name, email_address, password_hash, user_role, date_created
+                FROM ar_user
+                WHERE email_address = :email
             ");
             
             $stmt->bindParam(':email', $email, PDO::PARAM_STR);
@@ -106,8 +106,8 @@ class User {
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
             
             $stmt = $this->db->prepare("
-                INSERT INTO users (business_id, name, email, password, role)
-                VALUES (:business_id, :name, :email, :password, :role)
+                INSERT INTO ar_user (business_id, full_name, email_address, password_hash, user_role, date_created)
+                VALUES (:business_id, :name, :email, :password, :role, NOW())
             ");
             
             $stmt->bindParam(':business_id', $businessId, PDO::PARAM_INT);
@@ -159,7 +159,7 @@ class User {
             $updateStr = implode(', ', $updates);
             
             $stmt = $this->db->prepare("
-                UPDATE users
+                UPDATE ar_user
                 SET $updateStr
                 WHERE id = :id
             ");
@@ -180,7 +180,7 @@ class User {
     public function delete($id) {
         try {
             $stmt = $this->db->prepare("
-                DELETE FROM users
+                DELETE FROM ar_user
                 WHERE id = :id
             ");
             
@@ -203,7 +203,7 @@ class User {
         try {
             $stmt = $this->db->prepare("
                 SELECT id, business_id, name, email, role, created_at
-                FROM users
+                FROM ar_user
                 WHERE business_id = :business_id
                 ORDER BY created_at DESC
             ");

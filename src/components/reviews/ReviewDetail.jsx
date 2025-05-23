@@ -13,7 +13,7 @@
 //   LightningBoltIcon
 // } from '@heroicons/react/solid';
 // import ResponseForm from '../responses/ResponseForm';
-// import AIResponseGenerator from './AIResponseGenerator';
+// import AIResponseGenerator from '../responses/AIResponseGenerator';
 
 // export default function ReviewDetail() {
 //   const { id } = useParams();
@@ -375,7 +375,7 @@ import {
   LightningBoltIcon
 } from '@heroicons/react/solid';
 import ResponseForm from '../responses/ResponseForm';
-import AIResponseGenerator from './AIResponseGenerator';
+import AIResponseGenerator from '../responses/AIResponseGenerator';
 
 export default function ReviewDetail() {
   const { id } = useParams();

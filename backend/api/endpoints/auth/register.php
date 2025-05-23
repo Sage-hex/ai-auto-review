@@ -5,27 +5,8 @@
  * This endpoint handles user and business registration.
  */
 
-// Enable error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 0); // Don't display errors to browser, but log them
-
-// Start output buffering to prevent any unwanted output
-ob_start();
-
-// Include common API utilities
-require_once __DIR__ . '/../../common/init.php';
-
-// Enable CORS for all origins during development
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Access-Control-Max-Age: 86400'); // 24 hours cache
-
-// Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+// Include bootstrap file which handles CORS and other setup
+require_once __DIR__ . '/../../common/bootstrap.php';
 
 // Get request method and data
 $method = $_SERVER['REQUEST_METHOD'];

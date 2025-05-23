@@ -6,10 +6,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/AiAutoReview': {
-        target: 'http://localhost',
+      '/backend': {
+        target: 'http://localhost/AiAutoReview',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        rewrite: (path) => path.replace(/^\/backend/, '')
       }
     }
   }

@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Dashboard from '../components/dashboard/Dashboard';
-import Analytics from '../components/dashboard/Analytics';
 
 export default function DashboardPage() {
   const { currentUser, loading } = useAuth();
@@ -19,9 +18,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <>
       <Dashboard />
-      <Analytics />
-    </div>
+    </>
   );
 }

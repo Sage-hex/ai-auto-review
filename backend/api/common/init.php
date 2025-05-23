@@ -5,12 +5,11 @@
  * This file initializes the API environment and provides common utilities.
  */
 
-// Set error reporting
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Include database configuration
+require_once __DIR__ . '/../../config/database.php';
 
-// Set content type to JSON
-header('Content-Type: application/json');
+// The Content-Type header is set in bootstrap.php
+// CORS headers are applied by the cors.php middleware
 
 // Database connection
 function getDbConnection() {

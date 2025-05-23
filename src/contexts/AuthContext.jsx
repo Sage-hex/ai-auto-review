@@ -36,8 +36,8 @@ export function AuthProvider({ children }) {
       setError('');
       setLoading(true);
       
-      // Make API request to simplified login endpoint
-      const response = await api.post('/backend/api/endpoints/auth/login_simple.php', { 
+      // Make API request to the auth handler
+      const response = await api.post('/backend/api/endpoints/auth/handler.php', { 
         email, 
         password 
       });
@@ -100,9 +100,11 @@ export function AuthProvider({ children }) {
       };
       
       console.log('Sending registration data:', requestData);
+      console.log('API endpoint URL:', '/backend/api/endpoints/auth/handler.php');
       
-      // Make API request to simplified register endpoint
-      const response = await api.post('/backend/api/endpoints/auth/register_simple.php', requestData);
+      // Make API request to the auth handler
+      const response = await api.post('/backend/api/endpoints/auth/handler.php', requestData);
+      console.log('API URL used:', api.defaults.baseURL + '/backend/api/endpoints/auth/handler.php');
       
       console.log('Registration response:', response);
       

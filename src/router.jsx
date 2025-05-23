@@ -1,10 +1,8 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, createBrowserRouter, Outlet } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
 
 // Layout
 import Layout from './components/layout/Layout';
-
-// Auth Components
-import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -14,14 +12,43 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import ReviewsPage from './pages/ReviewsPage';
 import ReviewDetailPage from './pages/ReviewDetailPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 import UsersPage from './pages/UsersPage';
 import PlatformsPage from './pages/PlatformsPage';
+import ResponsesPage from './pages/ResponsesPage';
 import SubscriptionPage from './pages/SubscriptionPage';
 import SettingsPage from './pages/SettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
+// Import RouteTransition component
+import RouteTransition from './components/common/RouteTransition';
+
+// Protected Route wrapper component
+const ProtectedRoute = ({ children }) => {
+  const { currentUser, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+  
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <RouteTransition>{children}</RouteTransition>;
+};
+
+// Define routes
 const routes = [
   // Public Routes
+  {
+    path: '/',
+    element: <LandingPage />
+  },
   {
     path: '/landing',
     element: <LandingPage />
@@ -39,17 +66,17 @@ const routes = [
     element: <ForgotPasswordPage />
   },
   
-  // Protected Routes with Layout
+  // Protected Dashboard Route with nested routes
   {
-    path: '/',
-    element: <ProtectedRoute><Layout /></ProtectedRoute>,
+    path: '/dashboard',
+    element: <ProtectedRoute>
+      <Layout>
+        <Outlet />
+      </Layout>
+    </ProtectedRoute>,
     children: [
       {
         index: true,
-        element: <DashboardPage />
-      },
-      {
-        path: 'dashboard',
         element: <DashboardPage />
       },
       {
@@ -61,12 +88,20 @@ const routes = [
         element: <ReviewDetailPage />
       },
       {
+        path: 'analytics',
+        element: <AnalyticsPage />
+      },
+      {
         path: 'users',
         element: <UsersPage />
       },
       {
         path: 'platforms',
         element: <PlatformsPage />
+      },
+      {
+        path: 'responses',
+        element: <ResponsesPage />
       },
       {
         path: 'subscription',
@@ -86,4 +121,5 @@ const routes = [
   }
 ];
 
-export default routes;
+// Create and export the router
+export const router = createBrowserRouter(routes);

@@ -38,43 +38,43 @@ export default function Sidebar() {
     },
     {
       name: 'Reviews',
-      path: '/reviews',
+      path: '/dashboard/reviews',
       icon: <Star weight="duotone" className="w-6 h-6" />,
       roles: ['admin', 'manager', 'support', 'viewer']
     },
     {
       name: 'Analytics',
-      path: '/analytics',
+      path: '/dashboard/analytics',
       icon: <ChartLine weight="duotone" className="w-6 h-6" />,
       roles: ['admin', 'manager']
     },
     {
       name: 'Users',
-      path: '/users',
+      path: '/dashboard/users',
       icon: <Users weight="duotone" className="w-6 h-6" />,
       roles: ['admin', 'manager']
     },
     {
       name: 'Platforms',
-      path: '/platforms',
+      path: '/dashboard/platforms',
       icon: <Buildings weight="duotone" className="w-6 h-6" />,
       roles: ['admin', 'manager']
     },
     {
       name: 'Responses',
-      path: '/responses',
+      path: '/dashboard/responses',
       icon: <ChatCircleText weight="duotone" className="w-6 h-6" />,
       roles: ['admin', 'manager', 'support']
     },
     {
       name: 'Settings',
-      path: '/settings',
+      path: '/dashboard/settings',
       icon: <Gear weight="duotone" className="w-6 h-6" />,
       roles: ['admin', 'manager']
     },
     {
       name: 'Subscription',
-      path: '/subscription',
+      path: '/dashboard/subscription',
       icon: <CreditCard weight="duotone" className="w-6 h-6" />,
       roles: ['admin']
     }

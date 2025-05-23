@@ -17,7 +17,7 @@ export default function Layout({ children }) {
       </div>
       
       {/* Main content */}
-      <div className="flex-1 overflow-auto pl-4">
+      <div className="flex-1 overflow-auto scrollbar-hide pl-4">
         <main className="p-6">
           <div className="max-w-7xl mx-auto">
             {children || <Outlet />}

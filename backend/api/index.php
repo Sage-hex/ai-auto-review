@@ -5,16 +5,8 @@
  * This file handles all API requests and routes them to the appropriate endpoint.
  */
 
-// Enable CORS
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-// Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+// Include bootstrap file which handles CORS and other setup
+require_once __DIR__ . '/common/bootstrap.php';
 
 // Load required files
 require_once __DIR__ . '/../config/config.php';

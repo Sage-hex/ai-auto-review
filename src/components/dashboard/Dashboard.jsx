@@ -120,9 +120,24 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header with Navigation and Actions */}
+    <>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleSyncReviews}
+            disabled={isSyncing}
+            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+          >
+            <ArrowsClockwise className="h-5 w-5 mr-2" />
+            {isSyncing ? 'Syncing...' : 'Sync Reviews'}
+          </button>
+        </div>
+      </div>
+      
+      <div className="bg-white shadow rounded-lg mb-8">
+        <div className="p-6">
+        {/* Dashboard Content */}
         <motion.div 
           className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4"
           initial="hidden"
@@ -130,9 +145,9 @@ export default function Dashboard() {
           variants={containerVariants}
         >
           <motion.div variants={itemVariants} className="flex-1">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2 text-primary-600">
-              Welcome, {business?.name || 'User'}
-            </h1>
+            <h2 className="text-2xl font-semibold mb-2 text-primary-600">
+              Welcome back, {business?.name || 'User'}
+            </h2>
             <p className="text-gray-600">Monitor your review performance and manage AI-powered responses</p>
           </motion.div>
           
@@ -464,7 +479,8 @@ export default function Dashboard() {
             </div>
           </motion.div>
         </motion.div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

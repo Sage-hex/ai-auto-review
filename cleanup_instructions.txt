@@ -1,0 +1,29 @@
+CLEANUP INSTRUCTIONS
+
+The following files are no longer needed and can be safely removed:
+
+DATABASE FILES:
+1. c:\xampp\htdocs\AiAutoReview\backend\database\schema.sql
+2. c:\xampp\htdocs\AiAutoReview\backend\database\setup.sql
+3. c:\xampp\htdocs\AiAutoReview\backend\database\check_mysql.php
+4. c:\xampp\htdocs\AiAutoReview\backend\database\direct_setup.php
+5. c:\xampp\htdocs\AiAutoReview\backend\database\minimal_setup.php
+6. c:\xampp\htdocs\AiAutoReview\backend\database\setup.php
+7. c:\xampp\htdocs\AiAutoReview\backend\database\simple_setup.php
+8. c:\xampp\htdocs\AiAutoReview\backend\create_database.php
+
+OTHER REDUNDANT FILES:
+9. c:\xampp\htdocs\AiAutoReview\backend\register_simple.php (created temporarily during debugging)
+
+IMPORTANT: Keep these files as they're currently in use:
+- c:\xampp\htdocs\AiAutoReview\database_setup.sql (our new professional schema)
+- c:\xampp\htdocs\AiAutoReview\backend\config\database.php (core database configuration)
+- c:\xampp\htdocs\AiAutoReview\backend\api\endpoints\auth\handler.php (authentication handler)
+- c:\xampp\htdocs\AiAutoReview\backend\api\common\bootstrap.php (API bootstrap)
+- All files in c:\xampp\htdocs\AiAutoReview\src (frontend source code)
+
+NEXT STEPS:
+1. After cleaning up these files, access phpMyAdmin (http://localhost/phpmyadmin/)
+2. Create a new database named "aiautoreview"
+3. Import the database_setup.sql file from your project root directory
+4. Test the registration and login functionality to ensure everything works with the new schema

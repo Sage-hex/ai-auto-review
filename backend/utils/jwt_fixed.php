@@ -5,7 +5,11 @@
  * This file contains functions for JWT token generation and validation.
  */
 
-require_once __DIR__ . '/../config/config.php';
+// Define JWT constants if not already defined
+if (!defined('JWT_SECRET')) {
+    define('JWT_SECRET', 'your_jwt_secret_key_here'); // Change this in production
+    define('JWT_EXPIRY', 86400); // 24 hours in seconds
+}
 
 /**
  * Generate a JWT token for a user
@@ -132,3 +136,4 @@ function authorizeRole($userData, $allowedRoles) {
     
     return in_array($userData['role'], $allowedRoles);
 }
+?>

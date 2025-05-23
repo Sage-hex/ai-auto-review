@@ -88,7 +88,7 @@ export default function Analytics() {
   };
 
   return (
-    <div>
+    <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
         <div>
@@ -122,7 +122,8 @@ export default function Analytics() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="bg-white shadow rounded-lg">
+          <div className="p-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Total Reviews */}
@@ -420,8 +421,9 @@ export default function Analytics() {
               </div>
             </div>
           </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

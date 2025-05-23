@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import PremiumForgotPassword from '../components/auth/PremiumForgotPassword';
+import ForgotPassword from '../components/auth/ForgotPassword';
 
 export default function ForgotPasswordPage() {
   useEffect(() => {
     document.title = 'Forgot Password | AI Auto Review';
   }, []);
 
-  return <PremiumForgotPassword />;
+  return <ForgotPassword />;
 }

@@ -5,11 +5,16 @@
  * This file contains the database connection settings for the application.
  */
 
-// Database credentials
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'aiautoreview');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+// Database credentials - use environment variables if available, otherwise use defaults
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_NAME', getenv('DB_NAME') ?: 'aiautoreview');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') ?: '');
+
+// Log warning if using default credentials in production
+if (getenv('APP_ENV') !== 'development' && DB_USER === 'root' && DB_PASS === '') {
+    error_log("WARNING: Using default database credentials in production environment. This is a security risk.");
+}
 
 // PDO Database connection
 function getDbConnection() {
