@@ -1,12 +1,10 @@
 <?php
 /**
- * Gmail Helper
+ * Gmail Helper Functions
  * 
- * A simplified helper for sending emails through Gmail using basic socket connections
+ * This file contains functions for sending emails via Gmail using PHP's mail function
+ * It's designed to work without requiring additional libraries
  */
-
-// Include the email configuration
-require_once __DIR__ . '/../config/email_config.php';
 
 /**
  * Send an email using Gmail's SMTP server
@@ -17,11 +15,11 @@ require_once __DIR__ . '/../config/email_config.php';
  * @return bool Whether the email was sent successfully
  */
 function sendGmailEmail($to, $subject, $message) {
-    // Configuration
-    $from = MAIL_FROM_EMAIL;
-    $fromName = MAIL_FROM_NAME;
-    $username = SMTP_USERNAME;
-    $password = SMTP_PASSWORD;
+    // Configuration from environment variables
+    $from = getenv('MAIL_FROM_EMAIL');
+    $fromName = getenv('MAIL_FROM_NAME');
+    $username = getenv('SMTP_USERNAME');
+    $password = getenv('SMTP_PASSWORD');
     
     // Log attempt
     error_log("Attempting to send Gmail to: $to");
@@ -187,13 +185,22 @@ function sendGmailEmail($to, $subject, $message) {
 function sendOTPFallback($to, $subject, $message) {
     error_log("Using fallback email method for: $to");
     
+    // Get configuration from environment variables
+    $from_email = getenv('MAIL_FROM_EMAIL');
+    $from_name = getenv('MAIL_FROM_NAME');
+    
     // Since Gmail failed, we'll use PHP's mail function as last resort
     $headers = [
         'MIME-Version: 1.0',
         'Content-Type: text/html; charset=UTF-8',
-        'From: ' . MAIL_FROM_NAME . ' <' . MAIL_FROM_EMAIL . '>',
+        'From: ' . $from_name . ' <' . $from_email . '>',
         'X-Mailer: PHP/' . phpversion()
     ];
+    
+    // Configure PHP's mail settings via ini_set
+    ini_set('SMTP', 'smtp.gmail.com');
+    ini_set('smtp_port', 587);
+    ini_set('sendmail_from', $from_email);
     
     return mail($to, $subject, $message, implode("\r\n", $headers));
 }

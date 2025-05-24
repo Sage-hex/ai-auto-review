@@ -5,7 +5,11 @@
  * A dedicated endpoint for OTP verification to avoid conflicts
  */
 
+// Include the direct CORS handler (no dependencies)
+require_once __DIR__ . '/direct_cors.php';
+
 // Enable error reporting
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -13,18 +17,12 @@ error_reporting(E_ALL);
 // Set error log path
 ini_set('error_log', __DIR__ . '/../../../../logs/php_errors.log');
 
-// Set CORS headers directly
-header('Access-Control-Allow-Origin: http://localhost:5173');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-header('Access-Control-Allow-Credentials: true');
+// CORS headers are already set by the included cors.php file
+// Just set the content type header
 header('Content-Type: application/json');
 
-// Handle preflight OPTIONS requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+// Log for debugging
+error_log("Using global CORS headers from cors.php for OTP verification");
 
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

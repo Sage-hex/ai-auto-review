@@ -5,8 +5,8 @@
  * Unified auth handler for registration and login
  */
 
-// Include the CORS handler
-require_once __DIR__ . '/../../cors.php';
+// Include the direct CORS handler (no dependencies)
+require_once __DIR__ . '/direct_cors.php';
 
 // Enable error reporting for development
 ini_set('display_errors', 1);
@@ -71,28 +71,11 @@ try {
     exit;
 }
 
-// Set CORS headers
-// Allow all origins during development
-header('Access-Control-Allow-Origin: http://localhost:5173');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-header('Access-Control-Max-Age: 86400');
-// Don't use credentials to avoid CORS issues
-header('Access-Control-Allow-Credentials: false');
-
+// Set content type header
 header('Content-Type: application/json');
-
-// Log CORS headers for debugging
-error_log("CORS headers set: Origin=http://localhost:5173");
 
 // Enable detailed error logging
 error_log("Auth handler initialized");
-
-// Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
 
 // Get request method and data
 $method = $_SERVER['REQUEST_METHOD'];
@@ -313,12 +296,57 @@ if (isset($data['business_name']) && isset($data['name']) && isset($data['email'
                 $otpStmt->execute([$userId, $data['email'], $otp, $expiryTime, $otp, $expiryTime]);
                 error_log("OTP stored in database");
                 
-                // Send OTP via email (in a real environment, use a proper email service)
-                // For now, we'll just log it and include it in the response for development
+                // Send OTP via email
                 error_log("OTP Email to {$data['email']}: $otp");
                 
-                // In a production environment, you would send a real email here
-                // sendOTPEmail($data['email'], $otp);
+                // Include the Gmail helper directly
+                require_once __DIR__ . '/../../../helpers/gmail_helper.php';
+                
+                // Define the sendOTPEmail function if it doesn't exist
+                if (!function_exists('sendOTPEmail')) {
+                    function sendOTPEmail($email, $otp) {
+                        // Prepare email content
+                        $subject = "Your OTP Verification Code";
+                        $message = "<html><body>";
+                        $message .= "<h2>OTP Verification</h2>";
+                        $message .= "<p>Your OTP verification code is: <strong>{$otp}</strong></p>";
+                        $message .= "<p>This code will expire in 15 minutes.</p>";
+                        $message .= "<p>If you did not request this code, please ignore this email.</p>";
+                        $message .= "</body></html>";
+                        
+                        // Always log the OTP for development purposes
+                        error_log("OTP Email to {$email}: {$otp}");
+                        
+                        // Try sending via Gmail first
+                        $result = sendGmailEmail($email, $subject, $message);
+                        
+                        if ($result) {
+                            error_log("Email sent successfully via Gmail");
+                            return true;
+                        }
+                        
+                        // For development mode, return true even if email sending fails
+                        // This allows testing the verification flow without actual email delivery
+                        $dev_mode = true;
+                        
+                        if ($dev_mode) {
+                            error_log("Using development mode - considering email as sent");
+                            return true;
+                        }
+                        
+                        error_log("Email sending failed for: {$email}");
+                        return false;
+                    }
+                }
+                
+                // Send the OTP via email
+                $emailSent = sendOTPEmail($data['email'], $otp);
+                
+                if ($emailSent) {
+                    error_log("OTP email sent successfully to {$data['email']}");
+                } else {
+                    error_log("Failed to send OTP email to {$data['email']}, but OTP is stored in database");
+                }
                 
                 // For development, include the OTP in the response
                 $devMode = true; // Set to false in production

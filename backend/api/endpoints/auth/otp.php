@@ -16,8 +16,54 @@ ini_set('error_log', __DIR__ . '/../../../../logs/php_errors.log');
 // Include the CORS handler - this will set all necessary CORS headers
 require_once __DIR__ . '/../../cors.php';
 
-// Include required files
-require_once __DIR__ . '/handler.php';
+/**
+ * Helper functions for API responses
+ */
+
+// Define helper functions if they don't exist
+if (!function_exists('sendSuccessResponse')) {
+    function sendSuccessResponse($data, $statusCode = 200) {
+        http_response_code($statusCode);
+        echo json_encode([
+            'success' => true,
+            'data' => $data
+        ]);
+        exit;
+    }
+}
+
+if (!function_exists('sendErrorResponse')) {
+    function sendErrorResponse($message, $statusCode = 400) {
+        http_response_code($statusCode);
+        echo json_encode([
+            'success' => false,
+            'message' => $message
+        ]);
+        exit;
+    }
+}
+
+if (!function_exists('sendMethodNotAllowedResponse')) {
+    function sendMethodNotAllowedResponse() {
+        http_response_code(405);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Method not allowed'
+        ]);
+        exit;
+    }
+}
+
+if (!function_exists('sendNotFoundResponse')) {
+    function sendNotFoundResponse() {
+        http_response_code(404);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Resource not found'
+        ]);
+        exit;
+    }
+}
 
 // Get request method and route
 $method = $_SERVER['REQUEST_METHOD'];
@@ -298,8 +344,8 @@ function generateOTP() {
  * Send OTP via email
  */
 function sendOTPEmail($email, $otp) {
-    // Include our direct SMTP helper that doesn't require cURL or OpenSSL
-    require_once __DIR__ . '/../../../helpers/direct_smtp.php';
+    // Include our Gmail helper
+    require_once __DIR__ . '/../../../helpers/gmail_helper.php';
     
     $subject = 'Your Verification Code for AI Auto Review';
     $message = "
@@ -334,50 +380,45 @@ function sendOTPEmail($email, $otp) {
     </html>
     ";
     
-    // Log the attempt (without exposing the full OTP)
+    // Log the attempt and check environment variables
     error_log("Attempting to send OTP Email to: $email");
-    
-    // For development, display the OTP on the page
-    // This helps with testing when email sending is not working
-    $dev_mode = true;
+    error_log("SMTP_HOST: " . getenv('SMTP_HOST'));
+    error_log("SMTP_PORT: " . getenv('SMTP_PORT'));
+    error_log("SMTP_USERNAME: " . getenv('SMTP_USERNAME'));
+    error_log("SMTP_PASSWORD is set: " . (getenv('SMTP_PASSWORD') ? 'Yes' : 'No'));
+    error_log("MAIL_FROM_EMAIL: " . getenv('MAIL_FROM_EMAIL'));
     
     // Always log the OTP for development purposes
-    error_log("Development OTP for {$email}: {$otp}");
+    error_log("OTP Email to {$email}: {$otp}");
     
-    // Try sending via our direct SMTP implementation first
-    $result = sendOTPEmailDirect($email, $otp);
+    // Try sending via Gmail first
+    $result = sendGmailEmail($email, $subject, $message);
     
-    // In development mode, consider the email as sent even if it fails
+    if ($result) {
+        error_log("Email sent successfully via Gmail");
+        return true;
+    }
+    
+    // If Gmail fails, try using the fallback method
+    error_log("Gmail sending failed, trying fallback method");
+    $fallback_result = sendOTPFallback($email, $subject, $message);
+    
+    if ($fallback_result) {
+        error_log("Email sent successfully via fallback method");
+        return true;
+    }
+    
+    // For development mode, return true even if email sending fails
+    // This allows testing the verification flow without actual email delivery
+    $dev_mode = true;
+    
     if ($dev_mode) {
-        // Log that we're using development mode
-        error_log("Using development mode for OTP: {$otp}");
-        $result = true; // Force success in development mode
+        error_log("Using development mode - considering email as sent");
+        return true;
     }
     
-    // If direct SMTP fails, try other methods
-    if (!$result) {
-        error_log("Direct SMTP failed, trying alternative methods");
-        
-        // Try using PHP's mail() function as a fallback
-        $headers = [
-            'MIME-Version: 1.0',
-            'Content-Type: text/html; charset=UTF-8',
-            'From: AI Auto Review <noreply@aiautoreview.com>',
-            'X-Mailer: PHP/' . phpversion()
-        ];
-        
-        // Attempt with PHP's mail function
-        $result = mail($email, $subject, $message, implode("\r\n", $headers));
-        
-        // Log the result
-        if ($result) {
-            error_log("OTP Email sent successfully via PHP mail() to: $email");
-        } else {
-            error_log("All email methods failed for: $email");
-        }
-    }
-    
-    return $result;
+    error_log("All email sending methods failed for: {$email}");
+    return false;
 }
 
 /**
@@ -395,50 +436,4 @@ if (!function_exists('maskEmail')) {
     }
 }
 
-/**
- * Send success response
- */
-function sendSuccessResponse($data, $statusCode = 200) {
-    http_response_code($statusCode);
-    echo json_encode([
-        'success' => true,
-        'data' => $data
-    ]);
-    exit;
-}
-
-/**
- * Send error response
- */
-function sendErrorResponse($message, $statusCode = 400) {
-    http_response_code($statusCode);
-    echo json_encode([
-        'success' => false,
-        'message' => $message
-    ]);
-    exit;
-}
-
-/**
- * Send method not allowed response
- */
-function sendMethodNotAllowedResponse() {
-    http_response_code(405);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Method not allowed'
-    ]);
-    exit;
-}
-
-/**
- * Send not found response
- */
-function sendNotFoundResponse() {
-    http_response_code(404);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Endpoint not found'
-    ]);
-    exit;
-}
+// Helper functions moved to the top of the file
