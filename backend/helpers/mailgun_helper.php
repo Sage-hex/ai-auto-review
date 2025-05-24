@@ -2,99 +2,154 @@
 /**
  * Mailgun Helper
  * 
- * This file contains helper functions for sending emails via Mailgun API.
+ * Functions for sending emails via Mailgun API with fallback methods
  */
 
-// Include the email configuration
+// Include environment variables
 require_once __DIR__ . '/../config/env.php';
 
 /**
  * Send an email using Mailgun API
  * 
- * @param string $to Recipient email address
+ * @param string $to Recipient email
  * @param string $subject Email subject
- * @param string $html Email body (HTML)
- * @param string $text Plain text version of the email (optional)
- * @param array $options Additional options like cc, bcc, attachments, etc.
- * @return bool Whether the email was sent successfully
+ * @param string $html HTML content of the email
+ * @param string $text Plain text content of the email (optional)
+ * @param array $options Additional options
+ * @return bool Success status
  */
 function sendMailgunEmail($to, $subject, $html, $text = '', $options = []) {
     // Get Mailgun configuration from environment
-    $apiKey = env('MAILGUN_API_KEY', '');
-    $domain = env('MAILGUN_DOMAIN', '');
-    $fromEmail = env('MAIL_FROM_EMAIL', 'noreply@aiautoreview.com');
-    $fromName = env('MAIL_FROM_NAME', 'AI Auto Review');
+    $apiKey = getenv('MAILGUN_API_KEY');
+    $domain = getenv('MAILGUN_DOMAIN');
+    $fromEmail = getenv('MAIL_FROM_EMAIL') ?: 'noreply@aiautoreview.com';
+    $fromName = getenv('MAIL_FROM_NAME') ?: 'AI Auto Review';
     
-    // Log attempt
-    error_log("Attempting to send email via Mailgun to: $to");
-    
-    // Validate required configuration
-    if (empty($apiKey) || empty($domain)) {
-        error_log("Mailgun Error: Missing API key or domain configuration");
-        return false;
+    // Check if Mailgun is configured
+    if (!$apiKey || !$domain) {
+        error_log("Mailgun not configured. Missing API key or domain.");
+        return sendFallbackEmail($to, $subject, $html, $text);
     }
     
-    try {
-        // Prepare the API endpoint
-        $endpoint = "https://api.mailgun.net/v3/$domain/messages";
-        
-        // Prepare the form data
-        $formData = [
-            'from' => "$fromName <$fromEmail>",
-            'to' => $to,
-            'subject' => $subject,
-            'html' => $html
-        ];
-        
-        // Add plain text version if provided
-        if (!empty($text)) {
-            $formData['text'] = $text;
-        }
-        
-        // Add any additional options
-        if (!empty($options)) {
-            $formData = array_merge($formData, $options);
-        }
-        
-        // Prepare curl request
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $endpoint);
-        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-        curl_setopt($ch, CURLOPT_USERPWD, "api:$apiKey");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $formData);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        
-        // Execute the request
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
-        // Check for errors
-        if (curl_errno($ch)) {
-            error_log("Mailgun cURL Error: " . curl_error($ch));
+    // Set from address
+    $from = isset($options['from']) ? $options['from'] : "{$fromName} <{$fromEmail}>";
+    
+    // Prepare the form data
+    $data = [
+        'from' => $from,
+        'to' => $to,
+        'subject' => $subject,
+        'html' => $html,
+    ];
+    
+    // Add text version if provided
+    if (!empty($text)) {
+        $data['text'] = $text;
+    } else {
+        // Generate plain text version if not provided
+        $data['text'] = htmlToText($html);
+    }
+    
+    // Add CC if provided
+    if (isset($options['cc'])) {
+        $data['cc'] = $options['cc'];
+    }
+    
+    // Add BCC if provided
+    if (isset($options['bcc'])) {
+        $data['bcc'] = $options['bcc'];
+    }
+    
+    // Log the attempt
+    error_log("Attempting to send email to {$to} via Mailgun");
+    
+    // Try to send using cURL if available
+    if (function_exists('curl_init')) {
+        try {
+            // Initialize cURL
+            $ch = curl_init();
+            
+            // Set cURL options
+            curl_setopt($ch, CURLOPT_URL, "https://api.mailgun.net/v3/{$domain}/messages");
+            curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+            curl_setopt($ch, CURLOPT_USERPWD, "api:{$apiKey}");
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // For development only
+            
+            // Execute the request
+            $response = curl_exec($ch);
+            $error = curl_error($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            
+            // Close cURL
             curl_close($ch);
-            return false;
+            
+            // Log the response for debugging
+            if ($response) {
+                error_log("Mailgun API response: " . $response);
+                
+                // Check if the request was successful
+                if ($httpCode >= 200 && $httpCode < 300) {
+                    error_log("Email sent successfully via Mailgun to {$to}");
+                    return true;
+                } else {
+                    error_log("Mailgun API error: HTTP status {$httpCode}");
+                }
+            }
+            
+            if ($error) {
+                error_log("Mailgun cURL error: " . $error);
+            }
+            
+            // If we got here, Mailgun failed - try fallback
+            return sendFallbackEmail($to, $subject, $html, $text);
+            
+        } catch (Exception $e) {
+            error_log("Mailgun exception: " . $e->getMessage());
+            return sendFallbackEmail($to, $subject, $html, $text);
         }
-        
-        curl_close($ch);
-        
-        // Process response
-        $result = json_decode($response, true);
-        
-        // Check if the request was successful
-        if ($httpCode == 200 && isset($result['id'])) {
-            error_log("Mailgun: Email sent successfully to $to (ID: {$result['id']})");
-            return true;
-        } else {
-            error_log("Mailgun Error: " . ($result['message'] ?? "HTTP Status $httpCode"));
-            return false;
-        }
-        
-    } catch (Exception $e) {
-        error_log("Mailgun Exception: " . $e->getMessage());
-        return false;
+    } else {
+        // cURL not available, use fallback
+        error_log("cURL not available for Mailgun API, using fallback");
+        return sendFallbackEmail($to, $subject, $html, $text);
     }
+}
+
+/**
+ * Send email using PHP's mail() function as a fallback
+ * 
+ * @param string $to Recipient email
+ * @param string $subject Email subject
+ * @param string $html HTML content
+ * @param string $text Plain text content
+ * @return bool Success status
+ */
+function sendFallbackEmail($to, $subject, $html, $text = '') {
+    error_log("Using PHP mail() as fallback for {$to}");
+    
+    // Get from address
+    $fromEmail = getenv('MAIL_FROM_EMAIL') ?: 'noreply@aiautoreview.com';
+    $fromName = getenv('MAIL_FROM_NAME') ?: 'AI Auto Review';
+    $from = "{$fromName} <{$fromEmail}>";
+    
+    // Set up headers for HTML email
+    $headers = "From: {$from}\r\n";
+    $headers .= "Reply-To: {$fromEmail}\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+    
+    // Try to send the email
+    $result = mail($to, $subject, $html, $headers);
+    
+    if ($result) {
+        error_log("Email sent successfully via mail() to {$to}");
+    } else {
+        error_log("Failed to send email via mail() to {$to}");
+    }
+    
+    return $result;
 }
 
 /**

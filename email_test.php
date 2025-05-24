@@ -6,7 +6,9 @@
 
 // Include configuration
 require_once __DIR__ . '/backend/config/env.php';
-require_once __DIR__ . '/backend/helpers/phpmailer_helper.php';
+require_once __DIR__ . '/backend/helpers/mailgun_helper.php';
+require_once __DIR__ . '/backend/helpers/gmail_helper.php';
+require_once __DIR__ . '/backend/helpers/email_helper.php';
 
 // Set error reporting
 ini_set('display_errors', 1);

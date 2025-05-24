@@ -34,14 +34,16 @@ function logError($message, $exception = null) {
 }
 
 // Function to mask email for privacy
-function maskEmail($email) {
-    $parts = explode('@', $email);
-    $name = $parts[0];
-    $domain = $parts[1];
-    
-    $maskedName = substr($name, 0, 2) . str_repeat('*', strlen($name) - 2);
-    
-    return $maskedName . '@' . $domain;
+if (!function_exists('maskEmail')) {
+    function maskEmail($email) {
+        $parts = explode('@', $email);
+        $name = $parts[0];
+        $domain = $parts[1];
+        
+        $maskedName = substr($name, 0, 2) . str_repeat('*', strlen($name) - 2);
+        
+        return $maskedName . '@' . $domain;
+    }
 }
 
 // Define JWT constants if not already defined

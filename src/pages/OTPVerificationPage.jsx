@@ -144,7 +144,7 @@ export default function OTPVerificationPage() {
         throw new Error('User ID not found. Please try registering again.');
       }
       
-      const response = await axios.post('/backend/api/endpoints/auth/otp.php?route=verify', {
+      const response = await axios.post('/backend/api/endpoints/auth/verify_otp.php', {
         user_id: userId,
         otp: otpValue
       });
