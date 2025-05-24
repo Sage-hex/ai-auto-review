@@ -78,6 +78,41 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Login with token and user data (used after OTP verification)
+  const loginWithToken = (token, userData) => {
+    try {
+      setError('');
+      
+      if (!token || !userData) {
+        throw new Error('Token and user data are required');
+      }
+      
+      // Save to state
+      setCurrentUser(userData);
+      
+      // Save to localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      // If business data is available, save it too
+      if (userData.business_id) {
+        const businessData = {
+          id: userData.business_id,
+          name: userData.business_name || 'Your Business'
+        };
+        setBusiness(businessData);
+        localStorage.setItem('business', JSON.stringify(businessData));
+      }
+      
+      console.log('Login with token successful');
+      return userData;
+    } catch (err) {
+      console.error('Login with token error:', err);
+      setError(err.message || 'Failed to login with token');
+      throw err;
+    }
+  };
+
   // Register function
   const register = async (businessName, name, email, password) => {
     try {
@@ -111,7 +146,8 @@ export function AuthProvider({ children }) {
       // Check if response exists
       if (!response || !response.data) {
         console.error('Empty response received from server');
-        throw new Error('Server returned an empty response. Please try again.');
+        // Don't throw here - it might be a network error but the registration could have succeeded
+        return { status: 'warning', message: 'Server returned an empty response, but your account may have been created. Please try logging in.' };
       }
       
       // Check if response has error status from our custom transform
@@ -122,25 +158,34 @@ export function AuthProvider({ children }) {
       
       // Check if response is successful
       if (response.data && response.data.status === 'success') {
-        const { user, business, token } = response.data.data;
-        
-        // Validate required data
-        if (!user || !business || !token) {
-          throw new Error('Registration succeeded but returned incomplete data');
+        // Check if verification is required
+        if (response.data.data.verification_required) {
+          console.log('Registration successful, verification required');
+          // Return the response data without setting user state
+          // User will be redirected to OTP verification page
+          return response.data;
+        } else {
+          // Traditional flow - no verification required
+          const { user, business, token } = response.data.data;
+          
+          // Validate required data
+          if (!user || !business || !token) {
+            throw new Error('Registration succeeded but returned incomplete data');
+          }
+          
+          // Save to state
+          setCurrentUser(user);
+          setBusiness(business);
+          
+          // Save to localStorage
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(user));
+          localStorage.setItem('business', JSON.stringify(business));
+          
+          console.log('Registration successful');
+          
+          return response.data;
         }
-        
-        // Save to state
-        setCurrentUser(user);
-        setBusiness(business);
-        
-        // Save to localStorage
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('business', JSON.stringify(business));
-        
-        console.log('Registration successful');
-        
-        return { user, business };
       } else {
         // Handle unexpected response format
         const errorMsg = response.data?.message || 'Registration failed. Unexpected response format.';
@@ -191,12 +236,13 @@ export function AuthProvider({ children }) {
   const value = {
     currentUser,
     business,
+    loading,
+    error,
     login,
+    loginWithToken,
     register,
     logout,
-    updateBusiness,
-    loading,
-    error
+    updateBusiness
   };
 
   return (

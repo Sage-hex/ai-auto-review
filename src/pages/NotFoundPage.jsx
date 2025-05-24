@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import PremiumNotFound from '../components/common/PremiumNotFound';
+import PremiumNotFound from '../components/common/premium404';
 
 export default function NotFoundPage() {
   useEffect(() => {

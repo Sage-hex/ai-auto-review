@@ -5,17 +5,24 @@
  * Unified auth handler for registration and login
  */
 
-// Only enable error reporting in development environment
-if (getenv('APP_ENV') === 'development') {
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
-} else {
-    // In production, disable error display but still log errors
-    ini_set('display_errors', 0);
-    ini_set('display_startup_errors', 0);
-    error_reporting(E_ALL);
+// Include the CORS handler
+require_once __DIR__ . '/../../cors.php';
+
+// Enable error reporting for development
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Set error log path
+ini_set('error_log', __DIR__ . '/../../../../logs/php_errors.log');
+
+// Create logs directory if it doesn't exist
+if (!file_exists(__DIR__ . '/../../../../logs')) {
+    mkdir(__DIR__ . '/../../../../logs', 0777, true);
 }
+
+// Log that the handler is starting
+error_log("Auth handler starting execution");
 
 // Function to log errors with stack trace
 function logError($message, $exception = null) {
@@ -24,6 +31,17 @@ function logError($message, $exception = null) {
         error_log("Exception: " . $exception->getMessage());
         error_log("Stack trace: " . $exception->getTraceAsString());
     }
+}
+
+// Function to mask email for privacy
+function maskEmail($email) {
+    $parts = explode('@', $email);
+    $name = $parts[0];
+    $domain = $parts[1];
+    
+    $maskedName = substr($name, 0, 2) . str_repeat('*', strlen($name) - 2);
+    
+    return $maskedName . '@' . $domain;
 }
 
 // Define JWT constants if not already defined
@@ -52,11 +70,14 @@ try {
 }
 
 // Set CORS headers
+// Allow all origins during development
 header('Access-Control-Allow-Origin: http://localhost:5173');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 header('Access-Control-Max-Age: 86400');
-header('Access-Control-Allow-Credentials: true');
+// Don't use credentials to avoid CORS issues
+header('Access-Control-Allow-Credentials: false');
+
 header('Content-Type: application/json');
 
 // Log CORS headers for debugging
@@ -125,6 +146,9 @@ if (isset($data['business_name']) && isset($data['name']) && isset($data['email'
             sendErrorResponse('Failed to connect to database', 500);
             exit;
         }
+        
+        // Log successful connection
+        error_log("Database connection successful");
         error_log("Database connection established");
         
         // Check if database exists and tables are created
@@ -134,13 +158,43 @@ if (isset($data['business_name']) && isset($data['name']) && isset($data['email'
             $tableExists = $stmt->rowCount() > 0;
             
             if (!$tableExists) {
-                logError("Required database tables don't exist");
-                sendErrorResponse('Database setup incomplete. Tables not found.', 500);
-                exit;
+                // Create the necessary tables if they don't exist
+                error_log("Creating required database tables");
+                
+                // Create ar_business table
+                $createBusinessTableSql = "CREATE TABLE IF NOT EXISTS ar_business (
+                    business_id INT AUTO_INCREMENT PRIMARY KEY,
+                    business_name VARCHAR(255) NOT NULL,
+                    subscription_type VARCHAR(50) DEFAULT 'free',
+                    business_status VARCHAR(50) DEFAULT 'trialing',
+                    date_created DATETIME NOT NULL,
+                    date_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                
+                $db->exec($createBusinessTableSql);
+                error_log("ar_business table created");
+                
+                // Create ar_user table
+                $createUserTableSql = "CREATE TABLE IF NOT EXISTS ar_user (
+                    user_id INT AUTO_INCREMENT PRIMARY KEY,
+                    business_id INT NOT NULL,
+                    full_name VARCHAR(255) NOT NULL,
+                    email_address VARCHAR(255) NOT NULL,
+                    is_verified TINYINT(1) DEFAULT 0,
+                    password_hash VARCHAR(255) NOT NULL,
+                    user_role VARCHAR(50) NOT NULL,
+                    date_created DATETIME NOT NULL,
+                    date_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY unique_email (email_address),
+                    FOREIGN KEY (business_id) REFERENCES ar_business(business_id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                
+                $db->exec($createUserTableSql);
+                error_log("ar_user table created");
             }
             error_log("Database tables verified");
         } catch (PDOException $e) {
-            logError("Error checking database tables", $e);
+            logError("Error checking or creating database tables", $e);
             sendErrorResponse('Database error: ' . $e->getMessage(), 500);
             exit;
         }
@@ -205,20 +259,83 @@ if (isset($data['business_name']) && isset($data['name']) && isset($data['email'
             $db->commit();
             error_log("Transaction committed successfully");
             
-            // Generate JWT token
-            error_log("Generating JWT token");
-            $token = generateJWT($userId, $businessId, 'admin');
-            error_log("JWT token generated");
+            // Generate OTP for verification
+            $otp = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+            $expiryTime = time() + (15 * 60); // 15 minutes expiry
+            
+            // Store OTP in database
+            try {
+                // Check if otp_verifications table exists
+                $checkOtpTableQuery = "SHOW TABLES LIKE 'otp_verifications'";
+                $stmt = $db->query($checkOtpTableQuery);
+                $otpTableExists = $stmt->rowCount() > 0;
+                
+                // Create the table if it doesn't exist - don't recreate if it exists
+                if (!$otpTableExists) {
+                    // Create the table if it doesn't exist
+                    $createOtpTableSql = "CREATE TABLE IF NOT EXISTS otp_verifications (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        user_id INT NOT NULL,
+                        email VARCHAR(255) NOT NULL,
+                        otp VARCHAR(6) NOT NULL,
+                        expiry_time INT NOT NULL,
+                        is_used TINYINT(1) DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        UNIQUE KEY unique_user_id (user_id),
+                        INDEX idx_otp (otp),
+                        INDEX idx_expiry (expiry_time)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                    
+                    $db->exec($createOtpTableSql);
+                    error_log("OTP verifications table created");
+                    
+                    // Add is_verified column to ar_user table if it doesn't exist
+                    $checkVerifiedColumnSql = "SHOW COLUMNS FROM ar_user LIKE 'is_verified'";
+                    $stmt = $db->query($checkVerifiedColumnSql);
+                    $verifiedColumnExists = $stmt->rowCount() > 0;
+                    
+                    if (!$verifiedColumnExists) {
+                        $addVerifiedColumnSql = "ALTER TABLE ar_user ADD COLUMN is_verified TINYINT(1) DEFAULT 0 AFTER email_address";
+                        $db->exec($addVerifiedColumnSql);
+                        error_log("Added is_verified column to ar_user table");
+                    }
+                }
+                
+                // Insert OTP record
+                $insertOtpSql = "INSERT INTO otp_verifications (user_id, email, otp, expiry_time, created_at) 
+                                VALUES (?, ?, ?, ?, NOW())
+                                ON DUPLICATE KEY UPDATE otp = ?, expiry_time = ?, created_at = NOW()";
+                
+                $otpStmt = $db->prepare($insertOtpSql);
+                $otpStmt->execute([$userId, $data['email'], $otp, $expiryTime, $otp, $expiryTime]);
+                error_log("OTP stored in database");
+                
+                // Send OTP via email (in a real environment, use a proper email service)
+                // For now, we'll just log it and include it in the response for development
+                error_log("OTP Email to {$data['email']}: $otp");
+                
+                // In a production environment, you would send a real email here
+                // sendOTPEmail($data['email'], $otp);
+                
+                // For development, include the OTP in the response
+                $devMode = true; // Set to false in production
+                
+            } catch (Exception $e) {
+                error_log("Error generating OTP: " . $e->getMessage());
+                // Continue with registration even if OTP generation fails
+            }
             
             // Prepare response data
             $responseData = [
-                'message' => 'Registration successful',
+                'message' => 'Registration successful. Please verify your email.',
                 'user' => [
                     'id' => $userId,
                     'name' => $data['name'],
                     'email' => $data['email'],
                     'role' => 'admin',
-                    'business_id' => $businessId
+                    'business_id' => $businessId,
+                    'is_verified' => false
                 ],
                 'business' => [
                     'id' => $businessId,
@@ -226,8 +343,16 @@ if (isset($data['business_name']) && isset($data['name']) && isset($data['email'
                     'subscription_plan' => 'free',
                     'status' => 'trialing'
                 ],
-                'token' => $token
+                'verification_required' => true,
+                'verification_email' => maskEmail($data['email'])
             ];
+            
+            // Add OTP to the response for development mode
+            if (isset($devMode) && $devMode) {
+                $responseData['dev_otp'] = $otp;
+            }
+            
+            // Use the maskEmail function defined at the top of the file
             
             // Return success response
             error_log("Sending success response");

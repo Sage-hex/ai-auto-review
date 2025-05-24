@@ -7,7 +7,15 @@
 
 // Define JWT constants if not already defined
 if (!defined('JWT_SECRET')) {
-    define('JWT_SECRET', 'your_jwt_secret_key_here'); // Change this in production
+    // Use environment variable for JWT secret if available, otherwise use a secure fallback
+    $jwt_secret = getenv('JWT_SECRET');
+    if (!$jwt_secret) {
+        // Generate a secure random string as fallback
+        $jwt_secret = bin2hex(random_bytes(32));
+        // Log a warning that we're using a generated secret
+        error_log("WARNING: JWT_SECRET environment variable not set. Using generated secret. This is not recommended for production.");
+    }
+    define('JWT_SECRET', $jwt_secret);
     define('JWT_EXPIRY', 86400); // 24 hours in seconds
 }
 

@@ -1,6 +1,7 @@
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { House, ArrowLeft, Warning } from 'phosphor-react';
+import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
+import { House, ArrowLeft, Warning, MagnifyingGlass, Lightbulb, ArrowsClockwise, Lightning, Compass } from 'phosphor-react';
 
 // Animation variants
 const containerVariants = {

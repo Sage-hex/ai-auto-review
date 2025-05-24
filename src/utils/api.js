@@ -6,8 +6,9 @@ const api = axios.create({
   baseURL: 'http://localhost/AiAutoReview',  // Direct URL to XAMPP server
   headers: {
     'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest'
   },
-  withCredentials: true, // Important for CORS with credentials
+  withCredentials: false, // Set to false for simpler CORS handling
   // Add timeout to prevent hanging requests
   timeout: 10000,
   // Ensure proper JSON parsing

@@ -3,21 +3,27 @@
  * Application Configuration
  * 
  * This file contains the main configuration settings for the application.
+ * Sensitive information is loaded from environment variables.
  */
 
+// Include environment loader if not already included
+if (!function_exists('env')) {
+    require_once __DIR__ . '/env.php';
+}
+
 // Application settings
-define('APP_NAME', 'AI Auto Review');
-define('APP_VERSION', '1.0.0');
-define('APP_URL', 'http://localhost/AiAutoReview');
+define('APP_NAME', env('APP_NAME', 'AI Auto Review'));
+define('APP_VERSION', env('APP_VERSION', '1.0.0'));
+define('APP_URL', env('APP_URL', 'http://localhost/AiAutoReview'));
 define('API_URL', APP_URL . '/backend/api');
 
 // JWT Authentication settings
-define('JWT_SECRET', 'your_jwt_secret_key_here'); // Change this in production
-define('JWT_EXPIRY', 86400); // 24 hours in seconds
+define('JWT_SECRET', env('JWT_SECRET', 'change_this_to_a_secure_random_string')); // Loaded from .env
+define('JWT_EXPIRY', env('JWT_EXPIRY', 86400)); // 24 hours in seconds
 
 // Google Gemini API settings
-define('GEMINI_API_KEY', 'AIzaSyAPlReHI0CBsYGn8-orNTF25BoHfbGJsvs'); // Gemini API key
-define('GEMINI_MODEL', 'gemini-1.5-pro'); // You can also use gemini-1.0-pro or gemini-1.5-flash for different performance/cost tradeoffs
+define('GEMINI_API_KEY', env('GEMINI_API_KEY', '')); // Gemini API key from .env
+define('GEMINI_MODEL', env('GEMINI_MODEL', 'gemini-1.5-pro')); // Model version
 
 // Subscription plans
 define('PLANS', [

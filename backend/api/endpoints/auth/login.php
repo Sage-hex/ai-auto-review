@@ -1,4 +1,7 @@
 <?php
+// Include CORS handler
+require_once __DIR__ . '/cors.php';
+
 /**
  * Login Endpoint
  * 

@@ -104,39 +104,10 @@ export default function Register() {
       setError('');
       setIsLoading(true);
       
-      // Extract the required fields from formData and pass them individually to match the register function's parameters
-      const { company, firstName, lastName, email, password } = formData;
-      const businessName = company;
-      const name = `${firstName} ${lastName}`;
-      
-      // Store the registration response to get user data for OTP verification
-      const response = await register(businessName, name, email, password);
-      console.log('Registration response:', response);
-      
-      // Check if verification is required and we have the necessary data
-      if (response && response.data && response.data.verification_required) {
-        // Store user data in localStorage as a backup in case state is lost during navigation
-        localStorage.setItem('temp_registration_data', JSON.stringify(response.data));
-        
-        // Navigate to OTP verification page with user data
-        navigate('/verify-otp', { state: { userData: response.data } });
-      } else {
-        // If no verification required, navigate to dashboard
-        navigate('/dashboard');
-      }
+      await register(formData);
+      navigate('/verify-otp');
     } catch (err) {
-      console.error('Registration error details:', err);
-      
-      // Check if the error is about email already in use
-      if (err.response?.data?.message?.includes('email already exists') || 
-          err.response?.data?.message?.includes('already in use')) {
-        setError('This email is already registered. Please try logging in instead.');
-      } else if (err.message?.includes('Network Error')) {
-        // If it's a network error, the registration might have succeeded but the response failed
-        setError('Network error occurred. Your account may have been created, but we could not confirm it. Please try logging in before attempting to register again.');
-      } else {
-        setError(err.response?.data?.message || err.message || 'Registration failed. Please try again.');
-      }
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

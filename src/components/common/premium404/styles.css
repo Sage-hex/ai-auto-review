@@ -1,0 +1,84 @@
+/* Glitch effect for 404 text */
+.glitch-effect {
+  position: relative;
+  animation: glitch 1s infinite;
+  text-shadow: 2px 0 #ff00ea, -2px 0 #00ffff;
+}
+
+@keyframes glitch {
+  0% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-2px, 2px);
+  }
+  40% {
+    transform: translate(-2px, -2px);
+  }
+  60% {
+    transform: translate(2px, 2px);
+  }
+  80% {
+    transform: translate(2px, -2px);
+  }
+  100% {
+    transform: translate(0);
+  }
+}
+
+/* Typing animation for search */
+.typing-animation span {
+  opacity: 0;
+  animation: typingDot 1.4s infinite;
+}
+
+.typing-animation span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-animation span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingDot {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* 3D perspective utilities */
+.perspective-1000px {
+  perspective: 1000px;
+}
+
+/* Dark mode transitions */
+.dark {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Gradient animation for 404 text */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.bg-gradient-animated {
+  background: linear-gradient(-45deg, #4f46e5, #7c3aed, #2563eb, #4f46e5);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+  background-clip: text;
+  -webkit-background-clip: text;
+}
