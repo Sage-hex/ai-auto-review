@@ -109,21 +109,8 @@ export default function Register() {
       const businessName = company;
       const name = `${firstName} ${lastName}`;
       
-      // Store the registration response to get user data for OTP verification
-      const response = await register(businessName, name, email, password);
-      console.log('Registration response:', response);
-      
-      // Check if verification is required and we have the necessary data
-      if (response && response.data && response.data.verification_required) {
-        // Store user data in localStorage as a backup in case state is lost during navigation
-        localStorage.setItem('temp_registration_data', JSON.stringify(response.data));
-        
-        // Navigate to OTP verification page with user data
-        navigate('/verify-otp', { state: { userData: response.data } });
-      } else {
-        // If no verification required, navigate to dashboard
-        navigate('/dashboard');
-      }
+      await register(businessName, name, email, password);
+      navigate('/dashboard');
     } catch (err) {
       console.error('Registration error details:', err);
       

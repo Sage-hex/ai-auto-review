@@ -10,8 +10,6 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
-import OTPVerificationPage from './pages/OTPVerificationPage';
-import VerificationSuccessPage from './pages/VerificationSuccessPage';
 import DashboardPage from './pages/DashboardPage';
 import ReviewsPage from './pages/ReviewsPage';
 import ReviewDetailPage from './pages/ReviewDetailPage';
@@ -71,14 +69,6 @@ const routes = [
   {
     path: '/reset-password',
     element: <ResetPasswordPage />
-  },
-  {
-    path: '/verify-otp',
-    element: <OTPVerificationPage />
-  },
-  {
-    path: '/verification-success',
-    element: <VerificationSuccessPage />
   },
   
   // Protected Dashboard Route with nested routes
