@@ -66,3 +66,34 @@ If you're new to databases, use:
 - `docs/DATABASE_CONNECTION_GUIDE.md`
 
 It explains SQLite (easy local) and PostgreSQL (production) step by step.
+- [OpenAI](https://openai.com/) for the GPT API
+- [React](https://reactjs.org/) and [Vite](https://vitejs.dev/) for the frontend framework
+- [TailwindCSS](https://tailwindcss.com/) for the styling framework
+
+---
+
+## FastAPI Backend (New)
+
+A production-style FastAPI backend is now included in `fastapi_backend/` with proper separation of concerns (routers/services/models/db/core).
+
+### Run FastAPI backend
+
+```bash
+cd fastapi_backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+### Frontend API base URL
+
+Set this in `.env` (repo root) so React uses FastAPI:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+```
+
+### Database setup help
+
+See beginner guide: `docs/DATABASE_CONNECTION_GUIDE.md`.
