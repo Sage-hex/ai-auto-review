@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from './AuthContext';
+import api from '../utils/api';
 
 const ReviewContext = createContext();
 
@@ -18,216 +18,122 @@ export function ReviewProvider({ children }) {
   const [filters, setFilters] = useState({
     platform: '',
     rating: '',
-    sentiment: ''
+    sentiment: '',
+    response_status: '',
   });
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalReviews: 0
-  });
+  const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalReviews: 0 });
 
-  // Fetch reviews when user is logged in or filters change
   useEffect(() => {
-    if (currentUser) {
-      fetchReviews(1);
-      fetchReviewStats();
-      fetchPendingResponses();
-    }
+    if (!currentUser) return;
+    fetchReviews(1);
+    fetchReviewStats();
+    fetchPendingResponses();
   }, [currentUser, filters]);
 
-  // Fetch reviews
   const fetchReviews = async (page = 1) => {
     try {
       setLoading(true);
       setError('');
-      
-      // Build query parameters
-      const params = new URLSearchParams();
-      params.append('page', page);
-      
-      if (filters.platform) params.append('platform', filters.platform);
-      if (filters.rating) params.append('rating', filters.rating);
-      if (filters.sentiment) params.append('sentiment', filters.sentiment);
-      
-      const response = await axios.get(`/backend/api/reviews?${params.toString()}`);
-      
+
+      const params = new URLSearchParams({ page: String(page) });
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+
+      const response = await api.get(`/reviews?${params.toString()}`);
       setReviews(response.data.data.reviews);
       setPagination({
         currentPage: response.data.data.pagination.current_page,
         totalPages: response.data.data.pagination.total_pages,
-        totalReviews: response.data.data.pagination.total
+        totalReviews: response.data.data.pagination.total,
       });
-      
       return response.data.data;
     } catch (err) {
-      console.error('Error fetching reviews:', err);
-      setError(err.response?.data?.message || 'Failed to fetch reviews');
+      setError(err.response?.data?.detail || err.response?.data?.message || 'Failed to fetch reviews');
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch review statistics
   const fetchReviewStats = async () => {
     try {
-      const response = await axios.get('/backend/api/reviews/stats');
+      const response = await api.get('/reviews/stats');
       setReviewStats(response.data.data);
       return response.data.data;
-    } catch (err) {
-      console.error('Error fetching review stats:', err);
+    } catch {
+      return null;
     }
   };
 
-  // Fetch pending responses
   const fetchPendingResponses = async () => {
     try {
-      const response = await axios.get('/backend/api/responses/pending');
+      const response = await api.get('/responses/pending');
       setPendingResponses(response.data.data);
       return response.data.data;
-    } catch (err) {
-      console.error('Error fetching pending responses:', err);
+    } catch {
+      return [];
     }
   };
 
-  // Sync reviews from platforms
   const syncReviews = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const response = await axios.post('/backend/api/reviews/sync');
-      
-      // Refresh reviews and stats
-      await fetchReviews(1);
-      await fetchReviewStats();
-      
-      return response.data.data;
-    } catch (err) {
-      console.error('Error syncing reviews:', err);
-      setError(err.response?.data?.message || 'Failed to sync reviews');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    const response = await api.post('/reviews/sync');
+    await fetchReviews(1);
+    await fetchReviewStats();
+    return response.data.data;
   };
 
-  // Generate AI response for a review
   const generateResponse = async (reviewId, businessName, businessType, tone) => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const response = await axios.post(`/backend/api/reviews/${reviewId}/generate`, {
-        business_name: businessName || business.name,
-        business_type: businessType || '',
-        tone: tone || ''
-      });
-      
-      // Refresh reviews
-      await fetchReviews(pagination.currentPage);
-      await fetchPendingResponses();
-      
-      return response.data.data;
-    } catch (err) {
-      console.error('Error generating response:', err);
-      setError(err.response?.data?.message || 'Failed to generate response');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    const response = await api.post(`/reviews/${reviewId}/generate`, {
+      business_name: businessName || business?.name,
+      business_type: businessType,
+      tone,
+    });
+    await fetchReviews(pagination.currentPage);
+    await fetchPendingResponses();
+    return response.data.data;
   };
 
-  // Update response
   const updateResponse = async (responseId, responseText) => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const response = await axios.put(`/backend/api/responses/${responseId}`, {
-        response_text: responseText
-      });
-      
-      // Refresh pending responses
-      await fetchPendingResponses();
-      
-      return response.data.data;
-    } catch (err) {
-      console.error('Error updating response:', err);
-      setError(err.response?.data?.message || 'Failed to update response');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    const response = await api.put(`/responses/${responseId}`, { response_text: responseText });
+    await fetchPendingResponses();
+    return response.data.data;
   };
 
-  // Approve response
   const approveResponse = async (responseId) => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const response = await axios.post(`/backend/api/responses/${responseId}/approve`);
-      
-      // Refresh pending responses
-      await fetchPendingResponses();
-      
-      return response.data.data;
-    } catch (err) {
-      console.error('Error approving response:', err);
-      setError(err.response?.data?.message || 'Failed to approve response');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    const response = await api.post(`/responses/${responseId}/approve`);
+    await fetchPendingResponses();
+    return response.data.data;
   };
 
-  // Post response to platform
   const postResponse = async (responseId) => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const response = await axios.post(`/backend/api/responses/${responseId}/post`);
-      
-      // Refresh reviews
-      await fetchReviews(pagination.currentPage);
-      
-      return response.data.data;
-    } catch (err) {
-      console.error('Error posting response:', err);
-      setError(err.response?.data?.message || 'Failed to post response');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    const response = await api.post(`/responses/${responseId}/post`);
+    await fetchReviews(pagination.currentPage);
+    return response.data.data;
   };
 
-  // Update filters
-  const updateFilters = (newFilters) => {
-    setFilters({ ...filters, ...newFilters });
-  };
-
-  const value = {
-    reviews,
-    reviewStats,
-    pendingResponses,
-    loading,
-    error,
-    filters,
-    pagination,
-    fetchReviews,
-    fetchReviewStats,
-    fetchPendingResponses,
-    syncReviews,
-    generateResponse,
-    updateResponse,
-    approveResponse,
-    postResponse,
-    updateFilters
-  };
+  const updateFilters = (newFilters) => setFilters((prev) => ({ ...prev, ...newFilters }));
 
   return (
-    <ReviewContext.Provider value={value}>
+    <ReviewContext.Provider
+      value={{
+        reviews,
+        reviewStats,
+        pendingResponses,
+        loading,
+        error,
+        filters,
+        pagination,
+        fetchReviews,
+        fetchReviewStats,
+        fetchPendingResponses,
+        syncReviews,
+        generateResponse,
+        updateResponse,
+        approveResponse,
+        postResponse,
+        updateFilters,
+      }}
+    >
       {children}
     </ReviewContext.Provider>
   );
